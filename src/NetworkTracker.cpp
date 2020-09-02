@@ -20,19 +20,20 @@ vr::DriverPose_t Tracker::getDefaultPose()
 	quat.y = 0;
 	quat.z = 0;
 
-	pose.deviceIsConnected = false;
+	pose.deviceIsConnected = true;
 	pose.poseIsValid = true;
 	pose.result = vr::ETrackingResult::TrackingResult_Running_OK;
 	pose.qWorldFromDriverRotation = quat;
 	pose.qDriverFromHeadRotation = quat;
+	pose.qRotation = quat;
 	return pose;
 }
 
 void Tracker::updateTrackerWith(bool visible, double* rvec, double* tvec)
 {
 	vr::DriverPose_t pose = getDefaultPose();
-	pose.deviceIsConnected = true;
 	pose.poseIsValid = visible;
+	pose.result = visible ? vr::ETrackingResult::TrackingResult_Running_OK : vr::ETrackingResult::TrackingResult_Running_OutOfRange;
 	if (visible) {
 		// Position
 		memcpy(pose.vecPosition, tvec, sizeof(double[3]));
@@ -42,9 +43,14 @@ void Tracker::updateTrackerWith(bool visible, double* rvec, double* tvec)
 		double theta = linalg::length(rot_vec);
 		linalg::vec<double, 3> axis = linalg::normalize(rot_vec);
 		pose.qRotation.w = cos(theta / 2);
-		pose.qRotation.x = axis.x;
-		pose.qRotation.y = axis.y;
-		pose.qRotation.z = axis.z;
+		if (!isnan(axis.x)) // if rvec is 0 0 0 don't override qrotation
+		{
+			pose.qRotation.x = axis.x;
+			pose.qRotation.y = axis.y;
+			pose.qRotation.z = axis.z;
+		}
+		
+
 	}
 	vr::VRServerDriverHost()->TrackedDevicePoseUpdated(this->deviceId, pose, sizeof(vr::DriverPose_t));
 	

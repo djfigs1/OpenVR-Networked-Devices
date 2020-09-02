@@ -18,6 +18,21 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\DriverFactory.h" />
+    <ClInclude Include="src\linalg.h" />
+    <ClInclude Include="src\NetworkTracker.h" />
+    <ClInclude Include="src\NetworkTrackerReference.h" />
+    <ClInclude Include="src\SocketServer.h" />
+    <ClInclude Include="src\VRDriver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\DriverFactory.cpp" />
+    <ClCompile Include="src\NetworkTracker.cpp" />
+    <ClCompile Include="src\NetworkTrackerReference.cpp" />
+    <ClCompile Include="src\SocketServer.cpp" />
+    <ClCompile Include="src\VRDriver.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{DA85AF12-53D1-4136-9299-5207ADE380E6}</ProjectGuid>
@@ -73,23 +88,23 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Users\djfig\GitHub\FullBodyTrackMarkersDriver\libs\openvr\headers;$(IncludePath)</IncludePath>
     <OutDir>.\Build\$(Platform)\$(Configuration)\</OutDir>
-    <TargetName>driver_networkedvr</TargetName>
+    <TargetName>driver_networkvr</TargetName>
     <IntDir>.\Build\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\djfig\GitHub\FullBodyTrackMarkersDriver\libs\openvr\headers;</IncludePath>
     <OutDir>.\Build\$(Platform)\$(Configuration)\</OutDir>
-    <TargetName>driver_networkedvr</TargetName>
+    <TargetName>driver_networkvr</TargetName>
     <IntDir>.\Build\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\Build\$(Platform)\$(Configuration)\</OutDir>
-    <TargetName>driver_networkedvr</TargetName>
+    <TargetName>driver_networkvr</TargetName>
     <IntDir>.\Build\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>.\Build\$(Platform)\$(Configuration)\</OutDir>
-    <TargetName>driver_networkedvr</TargetName>
+    <TargetName>driver_networkvr</TargetName>
     <IntDir>.\Build\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -156,21 +171,6 @@
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="VRDriver.cpp" />
-    <ClCompile Include="SocketServer.cpp" />
-    <ClCompile Include="NetworkTracker.cpp" />
-    <ClCompile Include="NetworkTrackerReference.cpp" />
-    <ClCompile Include="DriverFactory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="VRDriver.h" />
-    <ClInclude Include="SocketServer.h" />
-    <ClInclude Include="NetworkTracker.h" />
-    <ClInclude Include="NetworkTrackerReference.h" />
-    <ClInclude Include="DriverFactory.h" />
-    <ClInclude Include="linalg.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
