@@ -2,6 +2,7 @@
 #include <cmath>
 #include <math.h>
 #include <string>
+#include "linalg.h"
 
 
 
@@ -94,6 +95,39 @@ void SocketServer::handleSocketMessage(int packetLength, struct sockaddr* client
 			break;
 
 		case SOCKET_COMMAND_TYPE::CALIBRATE:
+			// IRVEC, ITVEC, ORVEC, OTVEC
+			{
+				if (packetLength - current_bit == 4 * 24)
+				{
+					double i_rvec[3];
+					double i_tvec[3];
+					double o_rvec[3];
+					double o_tvec[3];
+
+					memcpy(&i_rvec, &this->m_recvBuffer[1], sizeof(double[3]));
+					memcpy(&i_tvec, &this->m_recvBuffer[25], sizeof(double[3]));
+					memcpy(&o_rvec, &this->m_recvBuffer[49], sizeof(double[3]));
+					memcpy(&o_tvec, &this->m_recvBuffer[73], sizeof(double[3]));
+				
+					linalg::vec<double, 3> ila_tvec = { i_tvec[0], i_tvec[1], i_tvec[2] };
+					linalg::vec<double, 3> ola_tvec = { o_tvec[0], o_tvec[1], o_tvec[2] };
+					linalg::vec<double, 3> r_tvec = ola_tvec - ila_tvec;
+					this->provider->globalTranslation[0] = r_tvec[0];
+					this->provider->globalTranslation[1] = r_tvec[2];
+					this->provider->globalTranslation[2] = r_tvec[2];
+
+					vr::DriverPoseQuaternion_t iq = TrackerProvider::rvecToQuat(i_rvec);
+					vr::DriverPoseQuaternion_t oq = TrackerProvider::rvecToQuat(o_rvec);
+					linalg::vec<double, 4> ilaq = { iq.w, iq.x, iq.y, iq.z };
+					linalg::vec<double, 4> olaq = { oq.w, oq.x, oq.y, oq.z };
+					linalg::vec<double, 4> dlaq = olaq * linalg::qinv(ilaq);
+					this->provider->globalQuaternion.w = dlaq.w;
+					this->provider->globalQuaternion.x = dlaq.x;
+					this->provider->globalQuaternion.y = dlaq.y;
+					this->provider->globalQuaternion.z = dlaq.z;
+
+				}
+			}
 			break;
 
 		case SOCKET_COMMAND_TYPE::UPDATE:

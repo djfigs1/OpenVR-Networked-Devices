@@ -2,18 +2,25 @@
 #include <openvr_driver.h>
 #include <memory>
 #include <map>
+
 #include "NetworkTracker.h"
 #include "NetworkTrackerReference.h"
 #include "SocketServer.h"
-#define LOG(msg) vr::VRDriverLog()->Log(msg);
 
-class TrackerProvider :
-	public vr::IServerTrackedDeviceProvider
+#define LOG(msg) vr::VRDriverLog()->Log(msg)
+
+class TrackerProvider : public vr::IServerTrackedDeviceProvider
 {
 public:
+	TrackerProvider();
+	~TrackerProvider();
+	
 	class SocketServer* p_socketServer;
-	std::map<char, Tracker*> trackers_map;
+	double globalTranslation[3];
+	vr::HmdQuaternion_t globalQuaternion;
+	std::map<char, class Tracker*> trackers_map;
 	std::vector<TrackingReference> references;
+	static vr::DriverPoseQuaternion_t rvecToQuat(double (&rvec)[3]);
 	void ClearTrackers();
 	void AddTracker(char id, const char* tracker_name);
 	bool RemoveTracker(char id);

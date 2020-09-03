@@ -1,17 +1,21 @@
 #pragma once
 #include <openvr_driver.h>
+#include "VRDriver.h"
 
 class Tracker : public vr::ITrackedDeviceServerDriver {
 
 public:
-	Tracker(const char* serial);
+	Tracker(const char* serial, class TrackerProvider* provider);
+	//Tracker(const char* serial);
+
 	~Tracker();
 
 	char* serial;
+	class TrackerProvider* provider;
 
 
 	static vr::DriverPose_t getDefaultPose();
-	void updateTrackerWith(bool visible, double* rvec, double* tvec);
+	void updateTrackerWith(bool visible, double(&rvec)[3], double(&tvec)[3]);
 
 	// ------------------------------------
 	// Management Methods
