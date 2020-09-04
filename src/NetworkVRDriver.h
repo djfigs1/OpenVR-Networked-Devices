@@ -3,23 +3,21 @@
 #include <memory>
 #include <map>
 
-#include "NetworkTracker.h"
-#include "NetworkTrackerReference.h"
+#include "NetworkTrackedDevice.h"
 #include "SocketServer.h"
 
 #define LOG(msg) vr::VRDriverLog()->Log(msg)
 
-class TrackerProvider : public vr::IServerTrackedDeviceProvider
+class NetworkVRDriver : public vr::IServerTrackedDeviceProvider
 {
 public:
-	TrackerProvider();
-	~TrackerProvider();
+	NetworkVRDriver();
+	~NetworkVRDriver();
 	
 	class SocketServer* p_socketServer;
 	double globalTranslation[3];
 	vr::HmdQuaternion_t globalQuaternion;
-	std::map<char, class Tracker*> trackers_map;
-	std::vector<TrackingReference> references;
+	std::map<char, class NetworkTrackedDevice*> trackers_map;
 	static vr::DriverPoseQuaternion_t rvecToQuat(double (&rvec)[3]);
 	void ClearTrackers();
 	void AddTracker(char id, const char* tracker_name);

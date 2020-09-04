@@ -6,7 +6,7 @@
 
 
 
-SocketServer::SocketServer(TrackerProvider* provider)
+SocketServer::SocketServer(NetworkVRDriver* provider)
 {
 	this->provider = provider;
 }
@@ -116,8 +116,8 @@ void SocketServer::handleSocketMessage(int packetLength, struct sockaddr* client
 					this->provider->globalTranslation[1] = r_tvec[2];
 					this->provider->globalTranslation[2] = r_tvec[2];
 
-					vr::DriverPoseQuaternion_t iq = TrackerProvider::rvecToQuat(i_rvec);
-					vr::DriverPoseQuaternion_t oq = TrackerProvider::rvecToQuat(o_rvec);
+					vr::DriverPoseQuaternion_t iq = NetworkVRDriver::rvecToQuat(i_rvec);
+					vr::DriverPoseQuaternion_t oq = NetworkVRDriver::rvecToQuat(o_rvec);
 					linalg::vec<double, 4> ilaq = { iq.w, iq.x, iq.y, iq.z };
 					linalg::vec<double, 4> olaq = { oq.w, oq.x, oq.y, oq.z };
 					linalg::vec<double, 4> dlaq = olaq * linalg::qinv(ilaq);
@@ -151,7 +151,7 @@ void SocketServer::handleSocketMessage(int packetLength, struct sockaddr* client
 					current_bit += sizeof(double[3]);
 				}
 
-				Tracker* tracker = this->provider->trackers_map[tracker_id];
+				NetworkTrackedDevice* tracker = this->provider->trackers_map[tracker_id];
 				if (tracker != nullptr)
 				{
 					tracker->updateTrackerWith(tracker_visible, rvec, tvec);

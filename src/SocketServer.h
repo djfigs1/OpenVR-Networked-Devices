@@ -4,18 +4,18 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <openvr_driver.h>
-#include "VRDriver.h"
+#include "NetworkVRDriver.h"
 
 class SocketServer
 {
 public:
-	SocketServer(class TrackerProvider* provider);
+	SocketServer(class NetworkVRDriver* provider);
 	~SocketServer();
 
 	static const int RECV_BUFFER_SIZE = 1024;
 	char m_recvBuffer[RECV_BUFFER_SIZE] = { 0 };
 	bool m_runServer = true;
-	class TrackerProvider* provider;
+	class NetworkVRDriver* provider;
 	
 	static int initialize_winsock();
 	void socket_thread();

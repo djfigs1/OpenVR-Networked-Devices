@@ -15,16 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\NetworkTracker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\NetworkTrackerReference.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\SocketServer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\VRDriver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\DriverFactory.h">
@@ -33,21 +24,24 @@
     <ClInclude Include="src\linalg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\NetworkTrackedDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkVRDriver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\NetworkTrackerReference.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\SocketServer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\VRDriver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\DriverFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\NetworkTracker.cpp">
+    <ClCompile Include="src\NetworkTrackedDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NetworkVRDriver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

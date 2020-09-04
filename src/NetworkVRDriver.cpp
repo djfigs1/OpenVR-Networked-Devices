@@ -1,4 +1,4 @@
-#include "VRDriver.h"
+#include "NetworkVRDriver.h"
 #include "linalg.h"
 #include <thread>
 #include <string>
@@ -26,26 +26,26 @@ void checkHMDLocation() {
 
 }*/
 
-TrackerProvider::TrackerProvider()
+NetworkVRDriver::NetworkVRDriver()
 {
 	this->globalQuaternion.w = 1.0;
 	this->globalQuaternion.x = this->globalQuaternion.y = this->globalQuaternion.z = 0;
 	ZeroMemory(this->globalTranslation, sizeof(double[3]));
 }
 
-TrackerProvider::~TrackerProvider()
+NetworkVRDriver::~NetworkVRDriver()
 {
 
 }
 
-vr::EVRInitError TrackerProvider::Init(vr::IVRDriverContext* pDriverContext) {
+vr::EVRInitError NetworkVRDriver::Init(vr::IVRDriverContext* pDriverContext) {
 	VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
-	LOG("arucovr init!");
+	LOG("NetworkVR has been initialized!");
 
 	this->p_socketServer = new SocketServer(this);
 	int winsock_result = SocketServer::initialize_winsock();
 	if (winsock_result == 0) {
-		LOG("winsock intialized successfully!");
+		LOG("WinSock has been initialized successfully!");
 		this->p_socketServer->start();
 	}
 	
@@ -54,7 +54,7 @@ vr::EVRInitError TrackerProvider::Init(vr::IVRDriverContext* pDriverContext) {
 	return vr::VRInitError_None;
 }
 
-vr::DriverPoseQuaternion_t TrackerProvider::rvecToQuat(double(&rvec)[3]) {
+vr::DriverPoseQuaternion_t NetworkVRDriver::rvecToQuat(double(&rvec)[3]) {
 	vr::DriverPoseQuaternion_t quat;
 	// Rotation
 	linalg::vec<double, 3> rot_vec = { rvec[0], rvec[1], rvec[2] };
@@ -70,52 +70,52 @@ vr::DriverPoseQuaternion_t TrackerProvider::rvecToQuat(double(&rvec)[3]) {
 	return quat;
 }
 
-void TrackerProvider::Cleanup() {
-	LOG("arucovr cleanup!");
+void NetworkVRDriver::Cleanup() {
+	LOG("NetworkVR cleanup!");
 	delete this->p_socketServer;
 }
 
-const char* const* TrackerProvider::GetInterfaceVersions()
+const char* const* NetworkVRDriver::GetInterfaceVersions()
 {
 	return vr::k_InterfaceVersions;
 }
 
-void TrackerProvider::RunFrame()
+void NetworkVRDriver::RunFrame()
 {
 
 }
 
-bool TrackerProvider::ShouldBlockStandbyMode()
+bool NetworkVRDriver::ShouldBlockStandbyMode()
 {
 	return false;
 }
 
-void TrackerProvider::EnterStandby()
+void NetworkVRDriver::EnterStandby()
 {
 
 }
 
-void TrackerProvider::LeaveStandby()
+void NetworkVRDriver::LeaveStandby()
 {
 
 }
 
-void TrackerProvider::ClearTrackers()
+void NetworkVRDriver::ClearTrackers()
 {
 }
 
-void TrackerProvider::AddTracker(char id, const char* tracker_name)
+void NetworkVRDriver::AddTracker(char id, const char* tracker_name)
 {
 	if (this->trackers_map[id] != nullptr) {
 		// don't recreate tracker device
 		return;
 	}
 
-	this->trackers_map[id] = new Tracker(tracker_name, this);
+	this->trackers_map[id] = new NetworkTrackedDevice(tracker_name);
 	vr::VRServerDriverHost()->TrackedDeviceAdded(tracker_name, vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker, this->trackers_map[id]);
 }
 
-bool TrackerProvider::RemoveTracker(char id)
+bool NetworkVRDriver::RemoveTracker(char id)
 {
 	return false;
 }
