@@ -5,7 +5,6 @@
 #include "linalg.h"
 
 
-
 SocketServer::SocketServer(NetworkVRDriver* provider)
 {
 	this->provider = provider;
@@ -40,127 +39,140 @@ void SocketServer::socket_thread()
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons(8082);
-	
-	if (bind(s, (struct sockaddr*) &server, sizeof(server)) == SOCKET_ERROR)
+
+	if (bind(s, (struct sockaddr*) & server, sizeof(server)) == SOCKET_ERROR)
 	{
 		int error = WSAGetLastError();
 
 		vr::VRDriverLog()->Log("bind failed with err");
-		
+
 		return;
 	}
 
-	
+
 	int len, packetLength;
 	len = sizeof(client);
 
 	while (this->m_runServer)
 	{
 		ZeroMemory(this->m_recvBuffer, sizeof(this->m_recvBuffer));
-		packetLength = recvfrom(s, (char*)this->m_recvBuffer, sizeof(this->m_recvBuffer), 0, (struct sockaddr*)&client, &len);
-		this->handleSocketMessage(packetLength, (struct sockaddr*) &client, s);
-
-		//memcpy(tracker->position, buffer, sizeof(double[3]));
-		//tracker->isConnected = true;
-		//tracker->RunFrame();
+		packetLength = recvfrom(s, (char*)this->m_recvBuffer, sizeof(this->m_recvBuffer), 0, (struct sockaddr*) & client, &len);
+		this->handleSocketMessage(packetLength, &client, s);
 	}
 }
 
-void SocketServer::handleSocketMessage(int packetLength, struct sockaddr* client, SOCKET socket) {
+void SocketServer::handleSocketMessage(int packetLength, struct sockaddr_in* client, SOCKET socket) {
 	char command_type = this->m_recvBuffer[0];
 	int current_bit = 1;
 	switch (command_type) {
-	case SOCKET_COMMAND_TYPE::ADVERTISE:
-			{
-				while (current_bit < packetLength)
-				{
-					char tracker_id = this->m_recvBuffer[current_bit];
-					current_bit += 1;
-					std::string tracker_serial = "";
-					while (m_recvBuffer[current_bit] != 0x00) { // 0x00 marks terminator for string
-						tracker_serial += m_recvBuffer[current_bit];
-						current_bit += 1;
-					}
-					current_bit += 1;
-					this->provider->AddTracker(tracker_id, tracker_serial.c_str());
-				}
+		case SOCKET_COMMAND_TYPE::HANDSHAKE:
+			this->onHandshake(current_bit, packetLength, client, socket);
+			break;
 
-				// reply with 0x00 0x01 (send, success)
-				char send_buffer[2];
-				send_buffer[0] = 0x00;
-				send_buffer[1] = true;
-
-				sendto(socket, send_buffer, sizeof(send_buffer), 0, client, sizeof(sockaddr_in));
-			}
+		case SOCKET_COMMAND_TYPE::ADVERTISE:
+			this->onAdvertise(current_bit, packetLength, client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::CALIBRATE:
-			// IRVEC, ITVEC, ORVEC, OTVEC
-			{
-				if (packetLength - current_bit == 4 * 24)
-				{
-					double i_rvec[3];
-					double i_tvec[3];
-					double o_rvec[3];
-					double o_tvec[3];
-
-					memcpy(&i_rvec, &this->m_recvBuffer[1], sizeof(double[3]));
-					memcpy(&i_tvec, &this->m_recvBuffer[25], sizeof(double[3]));
-					memcpy(&o_rvec, &this->m_recvBuffer[49], sizeof(double[3]));
-					memcpy(&o_tvec, &this->m_recvBuffer[73], sizeof(double[3]));
-				
-					linalg::vec<double, 3> ila_tvec = { i_tvec[0], i_tvec[1], i_tvec[2] };
-					linalg::vec<double, 3> ola_tvec = { o_tvec[0], o_tvec[1], o_tvec[2] };
-					linalg::vec<double, 3> r_tvec = ola_tvec - ila_tvec;
-					this->provider->globalTranslation[0] = r_tvec[0];
-					this->provider->globalTranslation[1] = r_tvec[2];
-					this->provider->globalTranslation[2] = r_tvec[2];
-
-					vr::DriverPoseQuaternion_t iq = NetworkVRDriver::rvecToQuat(i_rvec);
-					vr::DriverPoseQuaternion_t oq = NetworkVRDriver::rvecToQuat(o_rvec);
-					linalg::vec<double, 4> ilaq = { iq.w, iq.x, iq.y, iq.z };
-					linalg::vec<double, 4> olaq = { oq.w, oq.x, oq.y, oq.z };
-					linalg::vec<double, 4> dlaq = olaq * linalg::qinv(ilaq);
-					this->provider->globalQuaternion.w = dlaq.w;
-					this->provider->globalQuaternion.x = dlaq.x;
-					this->provider->globalQuaternion.y = dlaq.y;
-					this->provider->globalQuaternion.z = dlaq.z;
-
-				}
-			}
+			this->onCalibrate(current_bit, packetLength, client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::UPDATE:
-			while (current_bit < packetLength)
-			{
-				char tracker_char = this->m_recvBuffer[current_bit];
-				char tracker_id = std::abs(tracker_char);
-				bool tracker_visible = copysign(1.0, tracker_char) > 0;
-				current_bit += 1;
-				double rvec[3], tvec[3];
+			this->onUpdate(current_bit, packetLength, client, socket);
+			break;
 
-				// if the tracker isn't visible, there aren't vecs to parse
-				if (tracker_visible)
-				{
-					// rvec
-					memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-					current_bit += sizeof(double[3]);
-
-					// tvec
-					memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-					current_bit += sizeof(double[3]);
-				}
-
-				NetworkTrackedDevice* tracker = this->provider->trackers_map[tracker_id];
-				if (tracker != nullptr)
-				{
-					tracker->updateTrackerWith(tracker_visible, rvec, tvec);
-				}
-			}
+		case SOCKET_COMMAND_TYPE::WORLD_TRANSLATE:
+			this->onWorldTranslate(current_bit, packetLength, client, socket);
 			break;
 
 		default:
 			return;
+	}
+}
+
+void SocketServer::onHandshake(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+{
+	std::string log_message = "Handshake from ";
+	char address[16];
+	inet_ntop(AF_INET, client_addr, address, sizeof(address));
+	log_message += address;
+	vr::VRDriverLog()->Log(log_message.c_str());
+	this->provider->AddReference();
+}
+
+void SocketServer::onAdvertise(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+{
+	if (!this->m_clientConnected) {
+		this->m_clientConnected = true;
+		this->provider->clientDidHandshake();
+	}
+
+	while (current_bit < packet_length)
+	{
+		char tracker_id = this->m_recvBuffer[current_bit];
+		current_bit += 1;
+		std::string tracker_serial = "";
+		while (m_recvBuffer[current_bit] != 0x00) { // 0x00 marks terminator for string
+			tracker_serial += m_recvBuffer[current_bit];
+			current_bit += 1;
+		}
+		current_bit += 1;
+		this->provider->AddTracker(tracker_id, tracker_serial.c_str());
+	}
+
+	// reply with 0x00 0x01 (send, success)
+	char send_buffer[2];
+	send_buffer[0] = 0x00;
+	send_buffer[1] = true;
+
+	sendto(socket, send_buffer, sizeof(send_buffer), 0, (sockaddr*) client_addr, sizeof(sockaddr_in));
+}
+
+void SocketServer::onCalibrate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+{
+}
+
+void SocketServer::onUpdate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+{
+	while (current_bit < packet_length)
+	{
+		char tracker_char = this->m_recvBuffer[current_bit];
+		char tracker_id = std::abs(tracker_char);
+		bool tracker_visible = copysign(1.0, tracker_char) > 0;
+		current_bit += 1;
+		double rvec[3], tvec[3];
+
+		// if the tracker isn't visible, there aren't vecs to parse
+		if (tracker_visible)
+		{
+			// rvec
+			memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
+			current_bit += sizeof(double[3]);
+
+			// tvec
+			memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
+			current_bit += sizeof(double[3]);
+		}
+
+		NetworkTrackedDevice* tracker = this->provider->trackers_map[tracker_id];
+		if (tracker != nullptr)
+		{
+			tracker->updateTrackerWith(tracker_visible, rvec, tvec);
+		}
+	}
+}
+
+void SocketServer::onWorldTranslate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+{
+	if (packet_length == 1 + 2 * sizeof(double[3]))
+	{
+		double rvec[3], tvec[3];
+		memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
+		current_bit += sizeof(double[3]);
+		memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
+		vr::DriverPoseQuaternion_t quat = NetworkVRDriver::rvecToQuat(rvec);
+		this->provider->globalQuaternion = { quat.w, quat.x, quat.y, quat.z };
+		memcpy(this->provider->globalTranslation, &tvec, sizeof(double[3]));
 	}
 }
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="NetworkController.h" />
     <ClInclude Include="src\DriverFactory.h" />
     <ClInclude Include="src\linalg.h" />
     <ClInclude Include="src\NetworkTrackedDevice.h" />
@@ -26,6 +27,7 @@
     <ClInclude Include="src\NetworkVRDriver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="NetworkController.cpp" />
     <ClCompile Include="src\DriverFactory.cpp" />
     <ClCompile Include="src\NetworkTrackedDevice.cpp" />
     <ClCompile Include="src\SocketServer.cpp" />

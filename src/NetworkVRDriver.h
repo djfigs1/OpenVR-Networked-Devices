@@ -13,15 +13,19 @@ class NetworkVRDriver : public vr::IServerTrackedDeviceProvider
 public:
 	NetworkVRDriver();
 	~NetworkVRDriver();
-	
+
 	class SocketServer* p_socketServer;
+	std::map<char, class NetworkTrackedDevice*> trackers_map;
+	
+	
 	double globalTranslation[3];
 	vr::HmdQuaternion_t globalQuaternion;
-	std::map<char, class NetworkTrackedDevice*> trackers_map;
+	class NetworkTrackedDevice* reference = nullptr;
+	
 	static vr::DriverPoseQuaternion_t rvecToQuat(double (&rvec)[3]);
-	void ClearTrackers();
+	void clientDidHandshake();
+	void AddReference();
 	void AddTracker(char id, const char* tracker_name);
-	bool RemoveTracker(char id);
 
 	// Implementation of ITrackedDeviceServerDriver
 	vr::EVRInitError Init(vr::IVRDriverContext* pDriverContext);
@@ -31,5 +35,6 @@ public:
 	bool ShouldBlockStandbyMode();
 	void EnterStandby();
 	void LeaveStandby();
+
 };
 

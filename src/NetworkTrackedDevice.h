@@ -9,6 +9,7 @@ public:
 	NetworkTrackedDevice(const char* serial);
 	~NetworkTrackedDevice();
 	char* serial;
+	bool isReferenceDevice = false;
 
 	static vr::DriverPose_t getDefaultPose();
 	void updateTrackerWith(bool visible, double(&rvec)[3], double(&tvec)[3]);

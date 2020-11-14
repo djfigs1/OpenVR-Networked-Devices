@@ -5,26 +5,6 @@
 #include <memory>
 #include <iostream>
 
-/*
-std::thread hmd_thread;
-
-void checkHMDLocation() {
-	while (true) {
-		vr::TrackedDevicePose_t hmd;
-		vr::VRServerDriverHost()->GetRawTrackedDevicePoses(0, &hmd, 1U);
-		if (hmd.bPoseIsValid) {
-			float x = hmd.mDeviceToAbsoluteTracking.m[0][3];
-			float y = hmd.mDeviceToAbsoluteTracking.m[1][3];
-			float z = hmd.mDeviceToAbsoluteTracking.m[2][3];
-			char buffer[50];
-			snprintf(buffer, 50, "HMD X: %f, Y: %f, Z: %f", x, y, z);
-			LOG(buffer);
-		}
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
-	
-
-}*/
 
 NetworkVRDriver::NetworkVRDriver()
 {
@@ -42,20 +22,21 @@ vr::EVRInitError NetworkVRDriver::Init(vr::IVRDriverContext* pDriverContext) {
 	VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
 	LOG("NetworkVR has been initialized!");
 
+
 	this->p_socketServer = new SocketServer(this);
 	int winsock_result = SocketServer::initialize_winsock();
 	if (winsock_result == 0) {
 		LOG("WinSock has been initialized successfully!");
 		this->p_socketServer->start();
 	}
-	
+
 	//hmd_thread = std::thread(checkHMDLocation);
 
 	return vr::VRInitError_None;
 }
 
 vr::DriverPoseQuaternion_t NetworkVRDriver::rvecToQuat(double(&rvec)[3]) {
-	vr::DriverPoseQuaternion_t quat;
+	vr::DriverPoseQuaternion_t quat = { 0 };
 	// Rotation
 	linalg::vec<double, 3> rot_vec = { rvec[0], rvec[1], rvec[2] };
 	double theta = linalg::length(rot_vec);
@@ -82,7 +63,12 @@ const char* const* NetworkVRDriver::GetInterfaceVersions()
 
 void NetworkVRDriver::RunFrame()
 {
-
+	auto pose = NetworkTrackedDevice::getDefaultPose();
+	pose.qRotation = this->globalQuaternion;
+	memcpy(&pose.vecPosition, &this->globalTranslation, sizeof(double[3]));
+	if (this->reference != nullptr) {
+		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(reference->deviceId, pose, sizeof(vr::DriverPose_t));
+	}
 }
 
 bool NetworkVRDriver::ShouldBlockStandbyMode()
@@ -100,8 +86,18 @@ void NetworkVRDriver::LeaveStandby()
 
 }
 
-void NetworkVRDriver::ClearTrackers()
+void NetworkVRDriver::clientDidHandshake()
 {
+	
+}
+
+void NetworkVRDriver::AddReference()
+{
+	if (this->reference == nullptr) {
+		this->reference = new NetworkTrackedDevice("Network Reference");
+		this->reference->isReferenceDevice = true;
+		vr::VRServerDriverHost()->TrackedDeviceAdded(reference->serial, vr::ETrackedDeviceClass::TrackedDeviceClass_TrackingReference, reference);
+	}
 }
 
 void NetworkVRDriver::AddTracker(char id, const char* tracker_name)
@@ -113,9 +109,4 @@ void NetworkVRDriver::AddTracker(char id, const char* tracker_name)
 
 	this->trackers_map[id] = new NetworkTrackedDevice(tracker_name);
 	vr::VRServerDriverHost()->TrackedDeviceAdded(tracker_name, vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker, this->trackers_map[id]);
-}
-
-bool NetworkVRDriver::RemoveTracker(char id)
-{
-	return false;
 }
