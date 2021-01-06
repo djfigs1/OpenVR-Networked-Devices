@@ -24,10 +24,16 @@
     <ClInclude Include="src\linalg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\NetworkTrackedDevice.h">
+    <ClInclude Include="src\NetworkVRDriver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\NetworkVRDriver.h">
+    <ClInclude Include="src\INetworkTrackedDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkReferenceDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NetworkGenericDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -38,10 +44,13 @@
     <ClCompile Include="src\DriverFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\NetworkTrackedDevice.cpp">
+    <ClCompile Include="src\NetworkVRDriver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\NetworkVRDriver.cpp">
+    <ClCompile Include="src\NetworkGenericDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NetworkReferenceDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

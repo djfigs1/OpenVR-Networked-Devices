@@ -154,10 +154,10 @@ void SocketServer::onUpdate(int& current_bit, int packet_length, struct sockaddr
 			current_bit += sizeof(double[3]);
 		}
 
-		NetworkTrackedDevice* tracker = this->provider->trackers_map[tracker_id];
+		NetworkGenericDevice* tracker = this->provider->trackers_map[tracker_id];
 		if (tracker != nullptr)
 		{
-			tracker->updateTrackerWith(tracker_visible, rvec, tvec);
+			tracker->updateDeviceTransform(tracker_visible, rvec, tvec);
 		}
 	}
 }
@@ -170,7 +170,7 @@ void SocketServer::onWorldTranslate(int& current_bit, int packet_length, struct 
 		memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
 		current_bit += sizeof(double[3]);
 		memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-		vr::DriverPoseQuaternion_t quat = NetworkVRDriver::rvecToQuat(rvec);
+		vr::DriverPoseQuaternion_t quat = INetworkTrackedDevice::rvecToQuat(rvec);
 		this->provider->globalQuaternion = { quat.w, quat.x, quat.y, quat.z };
 		memcpy(this->provider->globalTranslation, &tvec, sizeof(double[3]));
 	}

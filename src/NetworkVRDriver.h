@@ -2,8 +2,8 @@
 #include <openvr_driver.h>
 #include <memory>
 #include <map>
-
-#include "NetworkTrackedDevice.h"
+#include "NetworkGenericDevice.h"
+#include "NetworkReferenceDevice.h"
 #include "SocketServer.h"
 
 #define LOG(msg) vr::VRDriverLog()->Log(msg)
@@ -15,14 +15,13 @@ public:
 	~NetworkVRDriver();
 
 	class SocketServer* p_socketServer;
-	std::map<char, class NetworkTrackedDevice*> trackers_map;
+	std::map<char, class NetworkGenericDevice*> trackers_map;
 	
 	
 	double globalTranslation[3];
 	vr::HmdQuaternion_t globalQuaternion;
-	class NetworkTrackedDevice* reference = nullptr;
-	
-	static vr::DriverPoseQuaternion_t rvecToQuat(double (&rvec)[3]);
+	class NetworkReferenceDevice* reference = nullptr;
+
 	void clientDidHandshake();
 	void AddReference();
 	void AddTracker(char id, const char* tracker_name);

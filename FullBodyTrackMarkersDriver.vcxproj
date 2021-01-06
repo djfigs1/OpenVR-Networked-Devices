@@ -19,17 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="NetworkController.h" />
     <ClInclude Include="src\DriverFactory.h" />
     <ClInclude Include="src\linalg.h" />
-    <ClInclude Include="src\NetworkTrackedDevice.h" />
+    <ClInclude Include="src\INetworkTrackedDevice.h" />
+    <ClInclude Include="src\NetworkGenericDevice.h" />
+    <ClInclude Include="src\NetworkReferenceDevice.h" />
     <ClInclude Include="src\SocketServer.h" />
     <ClInclude Include="src\NetworkVRDriver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NetworkController.cpp" />
     <ClCompile Include="src\DriverFactory.cpp" />
-    <ClCompile Include="src\NetworkTrackedDevice.cpp" />
+    <ClCompile Include="src\NetworkGenericDevice.cpp" />
+    <ClCompile Include="src\NetworkReferenceDevice.cpp" />
     <ClCompile Include="src\SocketServer.cpp" />
     <ClCompile Include="src\NetworkVRDriver.cpp" />
   </ItemGroup>
