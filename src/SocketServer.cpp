@@ -18,7 +18,7 @@ SocketServer::~SocketServer()
 
 void SocketServer::start()
 {
-	this->m_runServer = true;
+	this->runServer = true;
 	this->t_socketserver = std::thread(&SocketServer::socket_thread, this);
 }
 
@@ -53,44 +53,47 @@ void SocketServer::socket_thread()
 	int len, packetLength;
 	len = sizeof(client);
 
-	while (this->m_runServer)
+	while (this->runServer)
 	{
-		ZeroMemory(this->m_recvBuffer, sizeof(this->m_recvBuffer));
-		packetLength = recvfrom(s, (char*)this->m_recvBuffer, sizeof(this->m_recvBuffer), 0, (struct sockaddr*) & client, &len);
+		ZeroMemory(this->receiveBuffer, sizeof(this->receiveBuffer));
+		packetLength = recvfrom(s, (char*)this->receiveBuffer, sizeof(this->receiveBuffer), 0, (struct sockaddr*) & client, &len);
 		this->handleSocketMessage(packetLength, &client, s);
 	}
 }
 
 void SocketServer::handleSocketMessage(int packetLength, struct sockaddr_in* client, SOCKET socket) {
-	char command_type = this->m_recvBuffer[0];
-	int current_bit = 1;
-	switch (command_type) {
+	this->currentBufferPosition = 0;
+	this->currentBufferSize = packetLength;
+	if (packetLength > 0) {
+		char command_type = this->readCharFromBuffer();
+		switch (command_type) {
 		case SOCKET_COMMAND_TYPE::HANDSHAKE:
-			this->onHandshake(current_bit, packetLength, client, socket);
+			this->onHandshake(client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::ADVERTISE:
-			this->onAdvertise(current_bit, packetLength, client, socket);
+			this->onAdvertise(client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::CALIBRATE:
-			this->onCalibrate(current_bit, packetLength, client, socket);
+			this->onCalibrate(client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::UPDATE:
-			this->onUpdate(current_bit, packetLength, client, socket);
+			this->onUpdate(client, socket);
 			break;
 
 		case SOCKET_COMMAND_TYPE::WORLD_TRANSLATE:
-			this->onWorldTranslate(current_bit, packetLength, client, socket);
+			this->onWorldTranslate(client, socket);
 			break;
 
 		default:
 			return;
-	}
+		}
+	}	
 }
 
-void SocketServer::onHandshake(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+void SocketServer::onHandshake(struct sockaddr_in* client_addr, SOCKET socket)
 {
 	std::string log_message = "Handshake from ";
 	char address[16];
@@ -100,86 +103,109 @@ void SocketServer::onHandshake(int& current_bit, int packet_length, struct socka
 	this->provider->AddReference();
 }
 
-void SocketServer::onAdvertise(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+void SocketServer::onAdvertise(struct sockaddr_in* client_addr, SOCKET socket)
 {
-	if (!this->m_clientConnected) {
-		this->m_clientConnected = true;
+	if (!this->clientConnected) {
+		this->clientConnected = true;
 		this->provider->clientDidHandshake();
 	}
 
-	while (current_bit < packet_length)
-	{
-		char tracker_id = this->m_recvBuffer[current_bit];
-		current_bit += 1;
-		std::string tracker_serial = "";
-		while (m_recvBuffer[current_bit] != 0x00) { // 0x00 marks terminator for string
-			tracker_serial += m_recvBuffer[current_bit];
-			current_bit += 1;
+	try {
+		while (this->canReadSizeFromBuffer(1))
+		{
+			char tracker_id = this->readCharFromBuffer();
+			std::string tracker_serial = this->readStringFromBuffer();
+			this->provider->AddTracker(tracker_id, tracker_serial.c_str());
 		}
-		current_bit += 1;
-		this->provider->AddTracker(tracker_id, tracker_serial.c_str());
+
+		// reply with 0x00 0x01 (send, success)
+		char send_buffer[2];
+		send_buffer[0] = 0x00;
+		send_buffer[1] = true;
+
+		sendto(socket, send_buffer, sizeof(send_buffer), 0, (sockaddr*)client_addr, sizeof(sockaddr_in));
 	}
-
-	// reply with 0x00 0x01 (send, success)
-	char send_buffer[2];
-	send_buffer[0] = 0x00;
-	send_buffer[1] = true;
-
-	sendto(socket, send_buffer, sizeof(send_buffer), 0, (sockaddr*) client_addr, sizeof(sockaddr_in));
-}
-
-void SocketServer::onCalibrate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
-{
-}
-
-void SocketServer::onUpdate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
-{
-	while (current_bit < packet_length)
-	{
-		char tracker_char = this->m_recvBuffer[current_bit];
-		char tracker_id = std::abs(tracker_char);
-		bool tracker_visible = copysign(1.0, tracker_char) > 0;
-		current_bit += 1;
-		double rvec[3], tvec[3];
-
-		// if the tracker isn't visible, there aren't vecs to parse
-		if (tracker_visible)
-		{
-			// rvec
-			memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-			current_bit += sizeof(double[3]);
-
-			// tvec
-			memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-			current_bit += sizeof(double[3]);
-		}
-
-		NetworkGenericDevice* tracker = this->provider->trackers_map[tracker_id];
-		if (tracker != nullptr)
-		{
-			tracker->updateDeviceTransform(tracker_visible, rvec, tvec);
-		}
+	catch (const std::exception &e) {
+		vr::VRDriverLog()->Log("buffer read failed with err");
 	}
 }
 
-void SocketServer::onWorldTranslate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket)
+void SocketServer::onCalibrate(struct sockaddr_in* client_addr, SOCKET socket)
 {
-	if (packet_length == 1 + 2 * sizeof(double[3]))
+
+}
+
+void SocketServer::onUpdate(struct sockaddr_in* client_addr, SOCKET socket)
+{
+	try {
+		while (this->canReadSizeFromBuffer(1))
+		{
+			char tracker_char = this->readCharFromBuffer();
+			char tracker_id = std::abs(tracker_char);
+			bool tracker_visible = copysign(1.0, tracker_char) > 0;
+			double rvec[3], tvec[3];
+
+			// if the tracker isn't visible, there aren't vecs to parse
+			if (tracker_visible)
+			{
+				// rvec
+				this->readDoubleArrayFromBuffer(3, rvec);
+
+				// tvec
+				this->readDoubleArrayFromBuffer(3, tvec);
+			}
+
+			NetworkGenericDevice* tracker = this->provider->trackers_map[tracker_id];
+			if (tracker != nullptr)
+			{
+				tracker->updateDeviceTransform(tracker_visible, rvec, tvec);
+			}
+		}
+	} catch (const std::exception &e) {
+		vr::VRDriverLog()->Log("buffer read failed with err");
+	}
+}
+
+void SocketServer::onWorldTranslate(struct sockaddr_in* client_addr, SOCKET socket)
+{
+	if (this->canReadSizeFromBuffer(2 * sizeof(double[3])))
 	{
 		double rvec[3], tvec[3];
-		memcpy(&rvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
-		current_bit += sizeof(double[3]);
-		memcpy(&tvec, &this->m_recvBuffer[current_bit], sizeof(double[3]));
+		this->readDoubleArrayFromBuffer(3, rvec);
+		this->readDoubleArrayFromBuffer(3, tvec);
 		vr::DriverPoseQuaternion_t quat = INetworkTrackedDevice::rvecToQuat(rvec);
 		this->provider->globalQuaternion = { quat.w, quat.x, quat.y, quat.z };
 		memcpy(this->provider->globalTranslation, &tvec, sizeof(double[3]));
 	}
 }
 
+void SocketServer::onSetProperties(sockaddr_in* client_addr, SOCKET socket)
+{
+	while (this->canReadSizeFromBuffer(1)) {
+		char tracker_id = this->readCharFromBuffer();
+		NetworkGenericDevice* tracker = this->provider->trackers_map[tracker_id];
+		if (tracker != nullptr)
+		{
+			int property_type = this->readIntegerFromBuffer();
+		}
+	}
+}
+
+/// <summary>
+/// Simply sends an immediate reply to the client
+/// </summary>
+/// <param name="client_addr"></param>
+/// <param name="socket"></param>
+void SocketServer::onPing(sockaddr_in* client_addr, SOCKET socket)
+{
+	char reply_payload[1] = { 0x01 };
+	sendto(socket, reply_payload, sizeof(reply_payload), 0, (sockaddr*)client_addr, sizeof(sockaddr_in));
+}
+
 void SocketServer::stop() {
 	if (this->t_socketserver.joinable())
 	{
-		this->m_runServer = false;
+		this->runServer = false;
 		this->t_socketserver.join();
 	}
 
@@ -189,5 +215,58 @@ int SocketServer::initialize_winsock()
 {
 	WSADATA wsaData;
 	return WSAStartup(MAKEWORD(2, 2), &wsaData);
+}
+
+bool SocketServer::canReadSizeFromBuffer(size_t size) {
+	return this->currentBufferPosition + size <= this->currentBufferSize;
+}
+
+char SocketServer::readCharFromBuffer() {
+	if (this->canReadSizeFromBuffer(sizeof(char))) {
+		char val = this->receiveBuffer[this->currentBufferPosition];
+		this->currentBufferPosition += sizeof(char);
+		return val;
+	}
+	throw std::exception("buffer is too small to read from");
+}
+
+double SocketServer::readDoubleFromBuffer() {
+	if (this->canReadSizeFromBuffer(sizeof(double))) {
+		double val = *((double*)&this->receiveBuffer[this->currentBufferPosition]);
+		// Increment the current buffer position by the size of a double
+		this->currentBufferPosition += sizeof(double);
+		return val;
+	}
+	throw std::exception("buffer is too small to read from");
+}
+
+int SocketServer::readIntegerFromBuffer() {
+	if (this->canReadSizeFromBuffer(sizeof(int))) {
+		int val = *((int*) &this->receiveBuffer[this->currentBufferPosition]);
+		// Increment the current buffer position by the size of a double
+		this->currentBufferPosition += sizeof(int);
+		return val;
+	}
+	throw std::exception("buffer is too small to read from");
+}
+
+void SocketServer::readDoubleArrayFromBuffer(const size_t size, double* dest) {
+	// Size testing doesn't have to occur becuase it will happen within the double read
+	for (int i = 0; i < size; i++) {
+		dest[i] = this->readDoubleFromBuffer();
+	}
+}
+
+std::string SocketServer::readStringFromBuffer() {
+	std::string return_str;
+	while (this->canReadSizeFromBuffer(sizeof(char))) {
+		char str_character = this->readCharFromBuffer();
+		if (str_character != 0x00) { 
+			return_str += str_character;
+		} else {
+			break;
+		}
+	}
+	return return_str;
 }
 

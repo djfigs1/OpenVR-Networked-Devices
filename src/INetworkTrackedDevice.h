@@ -20,6 +20,21 @@ public:
 	virtual void* GetComponent(const char* pchComponentNameAndVersion) = 0;
 	virtual void DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize) = 0;
 
+	void SetDeviceStringProperty(vr::PropertyContainerHandle_t ulContainerHandle, vr::ETrackedDeviceProperty prop, const char* pchNewValue) {
+		vr::PropertyContainerHandle_t container = vr::VRProperties()->TrackedDeviceToPropertyContainer(this->GetDeviceId());
+		vr::VRProperties()->SetStringProperty(container, prop, pchNewValue);
+	}
+
+	void SetDeviceFloatProperty(vr::PropertyContainerHandle_t ulContainerHandle, vr::ETrackedDeviceProperty prop, const float fNewValue) {
+		vr::PropertyContainerHandle_t container = vr::VRProperties()->TrackedDeviceToPropertyContainer(this->GetDeviceId());
+		vr::VRProperties()->SetFloatProperty(container, prop, fNewValue);
+	}
+
+	void SetDeviceBoolProperty(vr::PropertyContainerHandle_t ulContainerHandle, vr::ETrackedDeviceProperty prop, const bool bNewValue) {
+		vr::PropertyContainerHandle_t container = vr::VRProperties()->TrackedDeviceToPropertyContainer(this->GetDeviceId());
+		vr::VRProperties()->SetBoolProperty(container, prop, bNewValue);
+	}
+
 	// ------------------------------------
 	// Tracking Methods
 	// ------------------------------------

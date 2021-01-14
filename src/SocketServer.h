@@ -14,9 +14,9 @@ public:
 	~SocketServer();
 
 	static const int RECV_BUFFER_SIZE = 1024;
-	char m_recvBuffer[RECV_BUFFER_SIZE] = { 0 };
-	bool m_runServer = true;
-	bool m_clientConnected = false;
+	char receiveBuffer[RECV_BUFFER_SIZE] = { 0 };
+	bool runServer = true;
+	bool clientConnected = false;
 	class NetworkVRDriver* provider;
 	
 	static int initialize_winsock();
@@ -24,12 +24,14 @@ public:
 	void start();
 	void stop();
 
-	void handleSocketMessage(int packetLength, struct sockaddr_in* client_addr, SOCKET socket);
-	void onHandshake(int &current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket);
-	void onAdvertise(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket);
-	void onCalibrate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket);
-	void onUpdate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket);
-	void onWorldTranslate(int& current_bit, int packet_length, struct sockaddr_in* client_addr, SOCKET socket);
+	void handleSocketMessage(int packetLength,  struct sockaddr_in* client_addr, SOCKET socket);
+	void onHandshake(struct sockaddr_in* client_addr, SOCKET socket);
+	void onAdvertise(struct sockaddr_in* client_addr, SOCKET socket);
+	void onCalibrate(struct sockaddr_in* client_addr, SOCKET socket);
+	void onUpdate(struct sockaddr_in* client_addr, SOCKET socket);
+	void onWorldTranslate(struct sockaddr_in* client_addr, SOCKET socket);
+	void onSetProperties(struct sockaddr_in* client_addr, SOCKET socket);
+	void onPing(struct sockaddr_in* client_addr, SOCKET socket);
 
 	enum SOCKET_COMMAND_TYPE {
 		HANDSHAKE = 0x00,
@@ -38,8 +40,17 @@ public:
 		UPDATE = 0x03,
 		WORLD_TRANSLATE = 0x04,
 		SET_PROPERTIES = 0x05,
+		PING = 0x06,
 	};
 
 private:
+	int currentBufferPosition = 0;
+	int currentBufferSize = 0;
+	bool canReadSizeFromBuffer(size_t size);
+	char readCharFromBuffer();
+	double readDoubleFromBuffer();
+	int readIntegerFromBuffer();
+	void readDoubleArrayFromBuffer(const size_t size, double* dest);
+	std::string readStringFromBuffer();
 	std::thread t_socketserver;
 };
