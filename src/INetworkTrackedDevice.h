@@ -1,6 +1,7 @@
 #pragma once
 #include <openvr_driver.h>
 #include <string.h>
+#include <math.h>
 #include "linalg.h"
 
 class INetworkTrackedDevice : public vr::ITrackedDeviceServerDriver {

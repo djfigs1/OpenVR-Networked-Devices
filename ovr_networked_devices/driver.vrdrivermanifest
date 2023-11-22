@@ -1,0 +1,10 @@
+{
+    "name" : "ovr_networked_devices",
+	"alwaysActivate": true,
+	"directory" : "",
+	"resourceOnly" : false,
+	"hmd_presence" :
+	[
+		"*.*"
+	]
+}

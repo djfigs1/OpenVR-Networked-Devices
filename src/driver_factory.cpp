@@ -1,4 +1,5 @@
-#include "DriverFactory.h"
+#include "driver_factory.h"
+#include <cstring>
 
 static std::shared_ptr<NetworkVRDriver> driver;
 

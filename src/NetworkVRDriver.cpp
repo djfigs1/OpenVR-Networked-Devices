@@ -22,7 +22,6 @@ vr::EVRInitError NetworkVRDriver::Init(vr::IVRDriverContext* pDriverContext) {
 	VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
 	LOG("NetworkVR has been initialized!");
 
-
 	this->p_socketServer = new SocketServer(this);
 	int winsock_result = SocketServer::initialize_winsock();
 	if (winsock_result == 0) {

@@ -1,6 +1,6 @@
 #include "SocketServer.h"
 #include <cmath>
-#include <math.h>
+#include <stdexcept>
 #include <string>
 #include "linalg.h"
 
@@ -227,7 +227,7 @@ char SocketServer::readCharFromBuffer() {
 		this->currentBufferPosition += sizeof(char);
 		return val;
 	}
-	throw std::exception("buffer is too small to read from");
+	throw std::runtime_error("buffer is too small to read from");
 }
 
 double SocketServer::readDoubleFromBuffer() {
@@ -237,7 +237,7 @@ double SocketServer::readDoubleFromBuffer() {
 		this->currentBufferPosition += sizeof(double);
 		return val;
 	}
-	throw std::exception("buffer is too small to read from");
+	throw std::runtime_error("buffer is too small to read from");
 }
 
 int SocketServer::readIntegerFromBuffer() {
@@ -247,7 +247,7 @@ int SocketServer::readIntegerFromBuffer() {
 		this->currentBufferPosition += sizeof(int);
 		return val;
 	}
-	throw std::exception("buffer is too small to read from");
+	throw std::runtime_error("buffer is too small to read from");
 }
 
 void SocketServer::readDoubleArrayFromBuffer(const size_t size, double* dest) {

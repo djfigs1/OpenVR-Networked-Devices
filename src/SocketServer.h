@@ -1,7 +1,6 @@
 #pragma once
 #include <thread>
 #include <string.h>
-#define NOMINMAX
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <openvr_driver.h>
