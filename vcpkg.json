@@ -2,6 +2,7 @@
     "name": "ovr-network-devices",
     "version-string": "0.1",
     "dependencies": [
-        "openvr"
+        "openvr",
+        "protobuf"
     ]
 }

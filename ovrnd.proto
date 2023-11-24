@@ -1,7 +1,20 @@
 syntax = "proto3";
 
-message OVRND {
-    
+message OVRNDMessage {
+    oneof msg {
+        UpdateMessage update_message = 1;
+    }
+}
+
+message UpdateMessage {
+    repeated DeviceUpdate updates = 1;
+}
+
+message DeviceUpdate {
+    int32 tracker_id = 1;
+    bool tracking = 2;
+    optional Vector3 position = 3;
+    optional Vector3 rotation = 4;
 }
 
 message Vector3 {

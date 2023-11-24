@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include "proto/ovrnd.pb.h"
 #include "linalg.h"
 
 
