@@ -36,3 +36,10 @@ Build/
 
 # Visual Studio
 .vs/
+
+# CMake
+.cmake/
+CMakeFiles/
+
+# Protobuf
+proto/

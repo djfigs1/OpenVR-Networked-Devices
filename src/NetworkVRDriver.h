@@ -1,39 +1,48 @@
 #pragma once
 #include <openvr_driver.h>
 #include <memory>
-#include <map>
-#include "NetworkGenericDevice.h"
-#include "NetworkReferenceDevice.h"
-#include "SocketServer.h"
+#include <string>
+#include "NetworkDevice.h"
+#include "NetworkServer.h"
 
-#define LOG(msg) vr::VRDriverLog()->Log(msg)
-
-class NetworkVRDriver : public vr::IServerTrackedDeviceProvider
-{
+class NetworkVRDriver : public vr::IServerTrackedDeviceProvider {
 public:
-	NetworkVRDriver();
-	~NetworkVRDriver();
+    NetworkVRDriver();
 
-	class SocketServer* p_socketServer;
-	std::map<char, class NetworkGenericDevice*> trackers_map;
-	
-	
-	double globalTranslation[3];
-	vr::HmdQuaternion_t globalQuaternion;
-	class NetworkReferenceDevice* reference = nullptr;
+    ~NetworkVRDriver();
 
-	void clientDidHandshake();
-	void AddReference();
-	void AddTracker(char id, const char* tracker_name);
+    double globalTranslation[3];
+    vr::HmdQuaternion_t globalQuaternion;
 
-	// Implementation of ITrackedDeviceServerDriver
-	vr::EVRInitError Init(vr::IVRDriverContext* pDriverContext);
-	void Cleanup();
-	const char* const* GetInterfaceVersions();
-	void RunFrame();
-	bool ShouldBlockStandbyMode();
-	void EnterStandby();
-	void LeaveStandby();
+    NetworkDevice *FindDeviceByIndex(vr::TrackedDeviceIndex_t index);
+    NetworkDevice *FindDeviceBySerial(const std::string &serial);
 
+    NetworkDevice *
+    RegisterDevice(vr::ETrackedDeviceClass deviceClass, const std::string &serial);
+
+    static void LogMessage(const std::string &message);
+
+    const class NetworkServer *getNetworkServer();
+
+    // Implementation of ITrackedDeviceServerDriver
+    vr::EVRInitError Init(vr::IVRDriverContext *pDriverContext);
+
+    void Cleanup();
+
+    const char *const *GetInterfaceVersions();
+
+    void RunFrame();
+
+    bool ShouldBlockStandbyMode();
+
+    void EnterStandby();
+
+    void LeaveStandby();
+
+
+
+private:
+    NetworkServer *p_socketServer;
+    std::vector<NetworkDevice*> devices;
 };
 

@@ -1,100 +1,106 @@
 #include "NetworkVRDriver.h"
-#include "linalg.h"
-#include <thread>
 #include <string>
 #include <memory>
-#include <iostream>
 
-
-NetworkVRDriver::NetworkVRDriver()
-{
-	this->globalQuaternion.w = 1.0;
-	this->globalQuaternion.x = this->globalQuaternion.y = this->globalQuaternion.z = 0;
-	ZeroMemory(this->globalTranslation, sizeof(double[3]));
+NetworkVRDriver::NetworkVRDriver() {
+    this->globalQuaternion.w = 1.0;
+    this->globalQuaternion.x = this->globalQuaternion.y = this->globalQuaternion.z = 0;
+    ZeroMemory(this->globalTranslation, sizeof(double[3]));
 }
 
-NetworkVRDriver::~NetworkVRDriver()
-{
-
+NetworkVRDriver::~NetworkVRDriver() {
+    delete this->p_socketServer;
 }
 
-vr::EVRInitError NetworkVRDriver::Init(vr::IVRDriverContext* pDriverContext) {
-	VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
-	LOG("NetworkVR has been initialized!");
+vr::EVRInitError NetworkVRDriver::Init(vr::IVRDriverContext *pDriverContext) {
+    VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
+    this->p_socketServer = new NetworkServer(*this);
+    LogMessage("OpenVR Networked Devices has been initialized!");
 
-	this->p_socketServer = new SocketServer(this);
-	int winsock_result = SocketServer::initialize_winsock();
-	if (winsock_result == 0) {
-		LOG("WinSock has been initialized successfully!");
-		this->p_socketServer->start();
-	}
+    int winsock_result = NetworkServer::initialize_winsock();
+    if (winsock_result == 0) {
+        LogMessage("WinSock has been initialized successfully!");
+        this->p_socketServer->start();
+    }
 
-	//hmd_thread = std::thread(checkHMDLocation);
-
-	return vr::VRInitError_None;
+    return vr::VRInitError_None;
 }
 
 void NetworkVRDriver::Cleanup() {
-	LOG("NetworkVR cleanup!");
-	delete this->p_socketServer;
+    LogMessage("NetworkVR cleanup!");
+    delete this->p_socketServer;
 }
 
-const char* const* NetworkVRDriver::GetInterfaceVersions()
-{
-	return vr::k_InterfaceVersions;
+const char *const *NetworkVRDriver::GetInterfaceVersions() {
+    return vr::k_InterfaceVersions;
 }
 
-void NetworkVRDriver::RunFrame()
-{
-	auto pose = INetworkTrackedDevice::getDefaultPose();
-	pose.qRotation = this->globalQuaternion;
-	memcpy(&pose.vecPosition, &this->globalTranslation, sizeof(double[3]));
-	if (this->reference != nullptr) {
-		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(reference->GetDeviceId(), pose, sizeof(vr::DriverPose_t));
-	}
+void NetworkVRDriver::RunFrame() {
+    p_socketServer->updateClients();
+
+    vr::VREvent_t vrEvent{};
+    while (vr::VRServerDriverHost()->PollNextEvent(&vrEvent, sizeof(vrEvent))) {
+        auto device = FindDeviceByIndex(vrEvent.trackedDeviceIndex);
+        if (device != nullptr) {
+            device->WithEachClient([&vrEvent](auto client) {
+                client->NotifyEvent(vrEvent);
+            });
+        }
+    }
 }
 
-bool NetworkVRDriver::ShouldBlockStandbyMode()
-{
-	return false;
+void NetworkVRDriver::LogMessage(const std::string &message) {
+    vr::VRDriverLog()->Log(message.c_str());
 }
 
-void NetworkVRDriver::EnterStandby()
-{
-
+bool NetworkVRDriver::ShouldBlockStandbyMode() {
+    return false;
 }
 
-void NetworkVRDriver::LeaveStandby()
-{
+void NetworkVRDriver::EnterStandby() {
 
 }
 
-void NetworkVRDriver::clientDidHandshake()
-{
-	
+void NetworkVRDriver::LeaveStandby() {
+
 }
 
-void NetworkVRDriver::AddReference()
-{
-	if (this->reference == nullptr) {
-		this->reference = new NetworkReferenceDevice("Network Reference");
-		this->reference->SetDeviceGlobalQuaternion(this->globalQuaternion);
-		this->reference->SetDeviceGlobalTranslation(this->globalTranslation);
-		vr::VRServerDriverHost()->TrackedDeviceAdded(reference->GetSerial().c_str(), vr::ETrackedDeviceClass::TrackedDeviceClass_TrackingReference, reference);
-	}
+const NetworkServer *NetworkVRDriver::getNetworkServer() {
+    return p_socketServer;
 }
 
-void NetworkVRDriver::AddTracker(char id, const char* tracker_name)
-{
-	if (this->trackers_map[id] != nullptr) {
-		// don't recreate tracker device
-		return;
-	}
+NetworkDevice *NetworkVRDriver::RegisterDevice(vr::ETrackedDeviceClass deviceClass, const std::string &serial) {
+    auto device = FindDeviceBySerial(serial);
 
-	auto tracker = new NetworkGenericDevice(tracker_name);
-	this->trackers_map[id] = tracker;
-	tracker->SetDeviceGlobalQuaternion(this->globalQuaternion);
-	tracker->SetDeviceGlobalTranslation(this->globalTranslation);
+    if (FindDeviceBySerial(serial) == nullptr) {
+        device = new NetworkDevice(*this, deviceClass, serial);
+        vr::VRServerDriverHost()->TrackedDeviceAdded(serial.c_str(),
+                                                     deviceClass,
+                                                     device);
+        devices.push_back(device);
 
-	vr::VRServerDriverHost()->TrackedDeviceAdded(tracker_name, vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker, tracker);
+        return device;
+    }
+
+    return device;
+}
+
+NetworkDevice *NetworkVRDriver::FindDeviceByIndex(vr::TrackedDeviceIndex_t index) {
+    for (const auto &device: devices) {
+        if (device->GetDeviceId() != 0 && device->GetDeviceId() == index) {
+            return device;
+        }
+    }
+
+    return nullptr;
+}
+
+NetworkDevice *NetworkVRDriver::FindDeviceBySerial(const std::string &serial) {
+    for (const auto &device: devices) {
+        if (device->GetSerial() == serial) {
+            return device;
+        }
+    }
+
+    return nullptr;
 }

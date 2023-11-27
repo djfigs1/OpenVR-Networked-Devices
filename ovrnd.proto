@@ -1,24 +1,204 @@
 syntax = "proto3";
 
-message OVRNDMessage {
-    oneof msg {
-        UpdateMessage update_message = 1;
+message ClientMessage {
+  message Request {
+    optional uint32 id = 1;
+    oneof request {
+      HelloRequest hello = 2;
+      UpdateDeviceRequest update_device = 3;
+      RegisterDevicesRequest register_devices = 4;
+      AddComponentsRequest add_components = 5;
     }
+  }
+
+  repeated Request requests = 2;
 }
 
-message UpdateMessage {
-    repeated DeviceUpdate updates = 1;
+message HelloRequest {
+  string serial = 1;
 }
 
-message DeviceUpdate {
-    int32 tracker_id = 1;
-    bool tracking = 2;
-    optional Vector3 position = 3;
-    optional Vector3 rotation = 4;
+message RegisterDevicesRequest {
+  repeated Device devices = 1;
+}
+
+message AddComponentsRequest {
+  message Component {
+    message BooleanConfig {
+
+    }
+
+    message ScalarConfig {
+      enum ScalarType {
+        Absolute = 0;
+        Relative = 1;
+      }
+
+      enum ScalarUnits {
+        NormalizedOneSided = 0;
+        NormalizedTwoSided = 1;
+      }
+
+      ScalarType type = 1;
+      ScalarUnits units = 2;
+    }
+
+    message HapticConfig {
+
+    }
+
+    message SkeletonConfig {
+      enum Hand {
+        Left = 0;
+        Right = 1;
+      }
+
+      enum SkeletalTrackingLevel {
+        Estimated = 0;
+        Partial = 1;
+        Full = 2;
+      }
+
+      Hand hand = 1;
+      optional string base_pose_path = 2;
+      SkeletalTrackingLevel skeletal_tracking_level = 3;
+      repeated BoneTransform grip_limit_transforms = 4;
+    }
+
+    string name = 1;
+    string component = 2;
+    oneof config {
+      BooleanConfig boolean = 3;
+      ScalarConfig scalar = 4;
+      HapticConfig haptic = 5;
+      SkeletonConfig skeleton = 6;
+    }
+  }
+
+  uint32 device_id = 1;
+  repeated Component components = 2;
+}
+
+
+message UpdateDeviceRequest {
+  message PoseUpdate {
+    bool is_connected = 1;
+    bool is_valid = 2;
+    optional Pose pose = 3;
+  }
+
+  message PropertyUpdate {
+    uint32 property = 1;
+    oneof value {
+      string str_value = 2;
+      float float_value = 3;
+      bool bool_value = 4;
+    }
+  }
+
+  message ComponentUpdate {
+    message SkeletonUpdate {
+      enum MotionRange {
+        WithController = 0;
+        WithoutController = 1;
+      }
+
+      MotionRange motion_range = 1;
+      repeated BoneTransform transforms = 2;
+    }
+
+    uint64 component = 1;
+    optional double time_offset = 2;
+    oneof update {
+      bool boolean = 3;
+      float scalar = 4;
+      SkeletonUpdate skeleton = 5;
+    }
+  }
+
+  uint32 tracker_id = 1;
+  optional PoseUpdate pose = 2;
+  repeated PropertyUpdate property_updates = 3;
+  repeated ComponentUpdate component_updates = 4;
+}
+
+message ServerMessage {
+  message Response {
+    optional uint32 id = 1;
+    oneof response {
+      DeviceActivationResponse device_activation = 2;
+      GoodbyeResponse goodbye = 3;
+      EventsResponse events = 4;
+    }
+  }
+
+  optional uint32 id = 1;
+  repeated Response responses = 2;
+}
+
+message GoodbyeResponse
+{
+  optional string reason = 1;
+}
+
+message DeviceActivationResponse {
+  repeated Device devices = 1;
+}
+
+message EventsResponse {
+  message Event {
+    message HapticVibrationEventData {
+      uint64 container_handle = 1;
+      uint64 component_handle = 2;
+      float duration = 3;
+      float frequency = 4;
+      float amplitude = 5;
+    }
+
+    uint32 event_type = 1;
+    uint32 device_id = 2;
+    float age_seconds = 3;
+
+    oneof data {
+      HapticVibrationEventData haptic_vibration = 4;
+    }
+  }
+
+  repeated Event events = 1;
+}
+
+message Pose {
+  Vector3 position = 1;
+  Vector4 orientation = 2;
+}
+
+message BoneTransform {
+  Vector4 position = 1;
+  Vector4 orientation = 2;
+}
+
+message Device {
+  enum DeviceClass {
+    Invalid = 0;
+    Controller = 2;
+    GenericTracker = 3;
+    TrackingReference = 4;
+  }
+
+  DeviceClass device_class = 1;
+  string serial = 2;
+  optional uint32 device_id = 3;
 }
 
 message Vector3 {
-    float x = 1;
-    float y = 2;
-    float z = 3;
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+message Vector4 {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
 }
